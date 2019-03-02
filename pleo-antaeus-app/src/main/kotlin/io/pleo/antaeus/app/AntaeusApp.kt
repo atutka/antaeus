@@ -8,6 +8,7 @@
 package io.pleo.antaeus.app
 
 import getPaymentProvider
+import io.pleo.antaeus.core.services.BillingJob
 import io.pleo.antaeus.core.services.BillingService
 import io.pleo.antaeus.core.services.CustomerService
 import io.pleo.antaeus.core.services.InvoiceService
@@ -21,8 +22,19 @@ import org.jetbrains.exposed.sql.StdOutSqlLogger
 import org.jetbrains.exposed.sql.addLogger
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.quartz.CronScheduleBuilder
+import org.quartz.JobBuilder
+import org.quartz.TriggerBuilder
+import org.quartz.impl.StdSchedulerFactory
 import setupInitialData
 import java.sql.Connection
+
+
+private const val JOB_NAME = "billingJob"
+private const val JOB_GROUP_NAME = "billingGroup"
+private const val JOB_TRIGGER_NAME = "triggerBillingJob"
+private const val BILLING_JOB_CRON_EXPRESSION = "0 0 0 1 1/1 ? *"
+
 
 fun main() {
     // The tables to create in the database.
@@ -56,12 +68,27 @@ fun main() {
     val customerService = CustomerService(dal = dal)
 
     // This is _your_ billing service to be included where you see fit
-    val billingService = BillingService(paymentProvider = paymentProvider)
+    scheduleBillingJob()
+    val billingService = BillingService(paymentProvider = paymentProvider, invoiceService = invoiceService)
 
     // Create REST web service
     AntaeusRest(
         invoiceService = invoiceService,
         customerService = customerService
     ).run()
+}
+
+private fun scheduleBillingJob() {
+    val scheduler = StdSchedulerFactory().scheduler
+    val billingJob = JobBuilder.newJob(BillingJob::class.java)
+            .withIdentity(JOB_NAME, JOB_GROUP_NAME)
+            .build()
+    val trigger = TriggerBuilder.newTrigger()
+            .withIdentity(JOB_TRIGGER_NAME, JOB_GROUP_NAME)
+            .withSchedule(CronScheduleBuilder.cronSchedule(BILLING_JOB_CRON_EXPRESSION))
+            .forJob(JOB_NAME, JOB_GROUP_NAME)
+            .build()
+    scheduler.scheduleJob(billingJob, trigger)
+    scheduler.start()
 }
 
