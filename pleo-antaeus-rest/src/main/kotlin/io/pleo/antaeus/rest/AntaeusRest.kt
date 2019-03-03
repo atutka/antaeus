@@ -7,16 +7,21 @@ package io.pleo.antaeus.rest
 import io.javalin.Javalin
 import io.javalin.apibuilder.ApiBuilder.get
 import io.javalin.apibuilder.ApiBuilder.path
+import io.javalin.apibuilder.ApiBuilder.post
 import io.pleo.antaeus.core.exceptions.EntityNotFoundException
+import io.pleo.antaeus.core.services.BillingService
 import io.pleo.antaeus.core.services.CustomerService
 import io.pleo.antaeus.core.services.InvoiceService
+import io.pleo.antaeus.models.InvoiceQuery
+import io.pleo.antaeus.models.InvoiceStatus
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
 class AntaeusRest (
     private val invoiceService: InvoiceService,
-    private val customerService: CustomerService
+    private val customerService: CustomerService,
+    private val billingService: BillingService
 ) : Runnable {
 
     override fun run() {
@@ -57,10 +62,22 @@ class AntaeusRest (
                            it.json(invoiceService.fetchAll())
                        }
 
-                       // URL: /rest/v1/invoices/{:id}
-                       get(":id") {
+                       // URL: /rest/v1/invoices/id/{:id}
+                       get("id/:id") {
                           it.json(invoiceService.fetch(it.pathParam("id").toInt()))
                        }
+
+                       // URL: /rest/v1/invoices/unpaid
+                       get("unpaid") {
+                           it.json(invoiceService.fetch(InvoiceQuery(statuses = listOf(InvoiceStatus.UNPAID_NETWORK_ERROR,
+                                   InvoiceStatus.UNPAID_LOW_ACCOUNT_BALANCE, InvoiceStatus.UNPAID_MISMATCH_CURRENCY,
+                                   InvoiceStatus.UNPAID_CUSTOMER_NOT_EXISTS, InvoiceStatus.UNPAID_ERROR))))
+                       }
+
+                       post("charge/:id") {
+                           //TODO implementation
+                       }
+
                    }
 
                    path("customers") {
@@ -69,8 +86,8 @@ class AntaeusRest (
                            it.json(customerService.fetchAll())
                        }
 
-                       // URL: /rest/v1/customers/{:id}
-                       get(":id") {
+                       // URL: /rest/v1/customers/id/{:id}
+                       get("id/:id") {
                            it.json(customerService.fetch(it.pathParam("id").toInt()))
                        }
                    }
