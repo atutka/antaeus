@@ -5,6 +5,7 @@ import io.pleo.antaeus.models.Currency
 import io.pleo.antaeus.models.Invoice
 import io.pleo.antaeus.models.InvoiceStatus
 import io.pleo.antaeus.models.Money
+import org.joda.time.LocalDateTime
 import java.math.BigDecimal
 import kotlin.random.Random
 
@@ -12,7 +13,10 @@ import kotlin.random.Random
 internal fun setupInitialData(dal: AntaeusDal) {
     val customers = (1..100).mapNotNull {
         dal.createCustomer(
-            currency = Currency.values()[Random.nextInt(0, Currency.values().size)]
+            currency = Currency.values()[Random.nextInt(0, Currency.values().size)],
+            email = "email" + Random.nextInt(0, 1000)+ "@email.com",
+            phoneNumber = "48000000000",
+            name = "name" + Random.nextInt(0, 1000)
         )
     }
 
@@ -24,7 +28,8 @@ internal fun setupInitialData(dal: AntaeusDal) {
                     currency = customer.currency
                 ),
                 customer = customer,
-                status = if (it == 1) InvoiceStatus.PENDING else InvoiceStatus.PAID
+                status = if (it == 1) InvoiceStatus.PENDING else InvoiceStatus.PAID,
+                successfulChargeDate = if (it > 1) LocalDateTime.now() else null
             )
         }
     }
