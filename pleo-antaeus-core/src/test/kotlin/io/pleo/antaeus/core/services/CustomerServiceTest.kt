@@ -7,10 +7,10 @@ import io.mockk.mockk
 import io.mockk.verifyAll
 import io.pleo.antaeus.core.exceptions.CustomerNotFoundException
 import io.pleo.antaeus.data.AntaeusDal
-import io.pleo.antaeus.models.Currency
-import io.pleo.antaeus.models.Customer
-import io.pleo.antaeus.models.CustomerCreateRequest
-import io.pleo.antaeus.models.CustomerUpdateRequest
+import io.pleo.antaeus.models.customer.Currency
+import io.pleo.antaeus.models.customer.Customer
+import io.pleo.antaeus.models.customer.CustomerCreateRequest
+import io.pleo.antaeus.models.customer.CustomerUpdateRequest
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows

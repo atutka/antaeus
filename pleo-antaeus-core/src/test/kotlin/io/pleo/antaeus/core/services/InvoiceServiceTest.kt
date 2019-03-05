@@ -7,10 +7,10 @@ import io.mockk.mockk
 import io.mockk.verifyAll
 import io.pleo.antaeus.core.exceptions.InvoiceNotFoundException
 import io.pleo.antaeus.data.AntaeusDal
-import io.pleo.antaeus.models.Invoice
-import io.pleo.antaeus.models.InvoiceCreateRequest
-import io.pleo.antaeus.models.InvoiceQuery
-import io.pleo.antaeus.models.InvoiceUpdateRequest
+import io.pleo.antaeus.models.invoice.Invoice
+import io.pleo.antaeus.models.invoice.InvoiceCreateRequest
+import io.pleo.antaeus.models.invoice.InvoiceQuery
+import io.pleo.antaeus.models.invoice.InvoiceUpdateRequest
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows

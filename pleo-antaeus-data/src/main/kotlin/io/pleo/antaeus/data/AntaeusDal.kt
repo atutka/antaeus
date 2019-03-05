@@ -7,15 +7,15 @@
 
 package io.pleo.antaeus.data
 
-import io.pleo.antaeus.models.Currency
-import io.pleo.antaeus.models.Customer
-import io.pleo.antaeus.models.CustomerUpdateRequest
-import io.pleo.antaeus.models.Invoice
-import io.pleo.antaeus.models.InvoiceCreateRequest
-import io.pleo.antaeus.models.InvoiceQuery
-import io.pleo.antaeus.models.InvoiceStatus
-import io.pleo.antaeus.models.InvoiceUpdateRequest
-import io.pleo.antaeus.models.Money
+import io.pleo.antaeus.models.customer.Currency
+import io.pleo.antaeus.models.customer.Customer
+import io.pleo.antaeus.models.customer.CustomerUpdateRequest
+import io.pleo.antaeus.models.invoice.Invoice
+import io.pleo.antaeus.models.invoice.InvoiceCreateRequest
+import io.pleo.antaeus.models.invoice.InvoiceQuery
+import io.pleo.antaeus.models.invoice.InvoiceStatus
+import io.pleo.antaeus.models.invoice.InvoiceUpdateRequest
+import io.pleo.antaeus.models.invoice.Money
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select

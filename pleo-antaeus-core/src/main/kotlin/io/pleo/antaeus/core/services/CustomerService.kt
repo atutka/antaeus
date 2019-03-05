@@ -6,9 +6,9 @@ package io.pleo.antaeus.core.services
 
 import io.pleo.antaeus.core.exceptions.CustomerNotFoundException
 import io.pleo.antaeus.data.AntaeusDal
-import io.pleo.antaeus.models.Customer
-import io.pleo.antaeus.models.CustomerCreateRequest
-import io.pleo.antaeus.models.CustomerUpdateRequest
+import io.pleo.antaeus.models.customer.Customer
+import io.pleo.antaeus.models.customer.CustomerCreateRequest
+import io.pleo.antaeus.models.customer.CustomerUpdateRequest
 
 class CustomerService(private val dal: AntaeusDal) {
     fun fetchAll(): List<Customer> {

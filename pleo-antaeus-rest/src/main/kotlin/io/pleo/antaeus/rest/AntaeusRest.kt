@@ -4,49 +4,68 @@
 
 package io.pleo.antaeus.rest
 
+import com.fasterxml.jackson.core.JsonParseException
+import com.fasterxml.jackson.module.kotlin.MissingKotlinParameterException
 import io.javalin.Javalin
 import io.javalin.apibuilder.ApiBuilder.get
 import io.javalin.apibuilder.ApiBuilder.path
 import io.javalin.apibuilder.ApiBuilder.post
 import io.javalin.apibuilder.ApiBuilder.put
-import io.pleo.antaeus.core.exceptions.EntityNotFoundException
+import io.pleo.antaeus.core.exceptions.CustomerNotFoundException
+import io.pleo.antaeus.core.exceptions.InvoiceAlreadyPaidException
+import io.pleo.antaeus.core.exceptions.InvoiceCanceledException
+import io.pleo.antaeus.core.exceptions.InvoiceNotFoundException
 import io.pleo.antaeus.core.services.BillingService
 import io.pleo.antaeus.core.services.CustomerService
 import io.pleo.antaeus.core.services.InvoiceService
-import io.pleo.antaeus.models.CustomerCreateRequest
-import io.pleo.antaeus.models.CustomerUpdateRequest
-import io.pleo.antaeus.models.InvoiceCreateRequest
-import io.pleo.antaeus.models.InvoiceQuery
-import io.pleo.antaeus.models.InvoiceStatus
-import io.pleo.antaeus.models.InvoiceUpdateRequest
+import io.pleo.antaeus.models.customer.CustomerCreateRequest
+import io.pleo.antaeus.models.customer.CustomerUpdateRequest
+import io.pleo.antaeus.models.invoice.InvoiceCreateRequest
+import io.pleo.antaeus.models.invoice.InvoiceQuery
+import io.pleo.antaeus.models.invoice.InvoiceStatus
+import io.pleo.antaeus.models.invoice.InvoiceUpdateRequest
 import mu.KotlinLogging
+import java.util.*
 
 private val logger = KotlinLogging.logger {}
 
 class AntaeusRest (
     private val invoiceService: InvoiceService,
     private val customerService: CustomerService,
-    private val billingService: BillingService
+    private val billingService: BillingService,
+    private val properties: Properties
 ) : Runnable {
 
     override fun run() {
-        app.start(7000)
+        app.start(properties.getProperty("server.port").toInt())
     }
 
     // Set up Javalin rest app
     private val app = Javalin
         .create()
         .apply {
-            // InvoiceNotFoundException: return 404 HTTP status code
-            exception(EntityNotFoundException::class.java) { _, ctx ->
-                ctx.status(404)
+            exception(InvoiceNotFoundException::class.java) { _, ctx ->
+                ctx.result("invoice not found")
+            }
+            exception(CustomerNotFoundException::class.java) { _, ctx ->
+                ctx.result("customer not found")
+            }
+            exception(InvoiceAlreadyPaidException::class.java) { _, ctx ->
+                ctx.result("invoice was already paid")
+            }
+            exception(InvoiceCanceledException::class.java) { _, ctx ->
+                ctx.result("invoice was canceled and cannot be paid")
+            }
+            exception(MissingKotlinParameterException::class.java) { _, ctx ->
+                ctx.result("request body is missing field/fields")
+            }
+            exception(JsonParseException::class.java) { _, ctx ->
+                ctx.result("request body is not correct. check parentheses, commas, quotation marks etc. ")
             }
             // Unexpected exception: return HTTP 500
             exception(Exception::class.java) { e, _ ->
                 logger.error(e) { "Internal server error" }
             }
-            // On 404: return message
-            error(404) { ctx -> ctx.json("not found") }
         }
 
     init {
@@ -86,7 +105,8 @@ class AntaeusRest (
 
                        // URL: /rest/v1/invoices/cancel/id/{:id}
                        post("cancel/id/:id") {
-                           it.json(invoiceService.update(InvoiceUpdateRequest(id = it.pathParam("id").toInt(), status = InvoiceStatus.CANCELED)))
+                           it.json(invoiceService.update(InvoiceUpdateRequest(id = it.pathParam("id").toInt(),
+                                   status = InvoiceStatus.CANCELED)))
                        }
 
                        // URL: /rest/v1/invoices
