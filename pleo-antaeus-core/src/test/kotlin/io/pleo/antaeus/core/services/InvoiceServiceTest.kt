@@ -6,10 +6,12 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.verifyAll
 import io.pleo.antaeus.core.exceptions.InvoiceNotFoundException
+import io.pleo.antaeus.core.exceptions.PaidInvoiceCannotBeCancelledException
 import io.pleo.antaeus.data.AntaeusDal
 import io.pleo.antaeus.models.invoice.Invoice
 import io.pleo.antaeus.models.invoice.InvoiceCreateRequest
 import io.pleo.antaeus.models.invoice.InvoiceQuery
+import io.pleo.antaeus.models.invoice.InvoiceStatus
 import io.pleo.antaeus.models.invoice.InvoiceUpdateRequest
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
@@ -75,12 +77,42 @@ class InvoiceServiceTest {
     @Test
     fun `will update invoice`() {
         val updateRequest = mockk<InvoiceUpdateRequest>()
+        val invoiceId = 100
+        val invoice = mockk<Invoice>()
         every { dal.updateInvoice(refEq(updateRequest)) } just Runs
+        every { updateRequest.id } returns invoiceId
+        every { dal.fetchInvoice(eq(invoiceId)) } returns invoice
+        every { invoice.status } returns InvoiceStatus.PENDING
 
         invoiceService.update(updateRequest)
 
         verifyAll {
             dal.updateInvoice(updateRequest)
+            dal.fetchInvoice(invoiceId)
+            updateRequest.id
+            invoice.status
+        }
+    }
+
+    @Test
+    fun `will throw paid invoice cannot be cancelled exception`() {
+        val updateRequest = mockk<InvoiceUpdateRequest>()
+        val invoiceId = 100
+        val invoice = mockk<Invoice>()
+        every { updateRequest.id } returns invoiceId
+        every { updateRequest.status } returns InvoiceStatus.CANCELED
+        every { dal.fetchInvoice(eq(invoiceId)) } returns invoice
+        every { invoice.status } returns InvoiceStatus.PAID
+
+        assertThrows<PaidInvoiceCannotBeCancelledException> {
+            invoiceService.update(updateRequest)
+        }
+
+        verifyAll {
+            dal.fetchInvoice(invoiceId)
+            updateRequest.id
+            updateRequest.status
+            invoice.status
         }
     }
 

@@ -3,7 +3,7 @@ package io.pleo.antaeus.core.services
 import io.pleo.antaeus.core.exceptions.CurrencyMismatchException
 import io.pleo.antaeus.core.exceptions.CustomerNotFoundException
 import io.pleo.antaeus.core.exceptions.InvoiceAlreadyPaidException
-import io.pleo.antaeus.core.exceptions.InvoiceCanceledException
+import io.pleo.antaeus.core.exceptions.InvoiceCancelledException
 import io.pleo.antaeus.core.exceptions.NetworkException
 import io.pleo.antaeus.core.external.PaymentProvider
 import io.pleo.antaeus.models.invoice.Invoice
@@ -19,18 +19,21 @@ class BillingService(
     private val currentDateTimeService: CurrentDateTimeService
 ) {
 
-    fun chargeInvoice(invoice: Invoice) {
+    fun chargeInvoice(invoice: Invoice): Boolean {
         logger.info("Starting charging for invoice id: {}", invoice.id)
         checkInvoiceStatus(invoice)
         val status = charge(invoice)
-        if(status != InvoiceStatus.PAID)
-            invoiceService.update(InvoiceUpdateRequest(id = invoice.id, status = status))
-        else {
+        val success = status == InvoiceStatus.PAID
+        if(success) {
             invoiceService.update(InvoiceUpdateRequest(id = invoice.id, status = status,
                     successfulChargeDate = currentDateTimeService.getCurrentLocalDateTime()))
             logger.info("Invoice with id {} was successfully charged", invoice.id)
         }
+        else {
+            invoiceService.update(InvoiceUpdateRequest(id = invoice.id, status = status))
+        }
         logger.info("Ending charging for invoice")
+        return success
     }
 
     private fun checkInvoiceStatus(invoice: Invoice) {
@@ -40,7 +43,7 @@ class BillingService(
         }
         if (invoice.status == InvoiceStatus.CANCELED) {
             logger.error("Invoice was canceled and cannot be charged")
-            throw InvoiceCanceledException(invoiceId = invoice.id)
+            throw InvoiceCancelledException(invoiceId = invoice.id)
         }
     }
 

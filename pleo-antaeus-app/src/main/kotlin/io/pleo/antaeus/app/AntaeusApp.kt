@@ -12,7 +12,9 @@ import io.pleo.antaeus.core.services.BillingJob
 import io.pleo.antaeus.core.services.BillingService
 import io.pleo.antaeus.core.services.CurrentDateTimeService
 import io.pleo.antaeus.core.services.CustomerService
+import io.pleo.antaeus.core.services.EmailService
 import io.pleo.antaeus.core.services.InvoiceService
+import io.pleo.antaeus.core.services.NotificationService
 import io.pleo.antaeus.data.AntaeusDal
 import io.pleo.antaeus.data.CustomerTable
 import io.pleo.antaeus.data.InvoiceTable
@@ -24,9 +26,13 @@ import org.jetbrains.exposed.sql.addLogger
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.quartz.CronScheduleBuilder
+import org.quartz.Job
 import org.quartz.JobBuilder
+import org.quartz.Scheduler
 import org.quartz.TriggerBuilder
 import org.quartz.impl.StdSchedulerFactory
+import org.quartz.simpl.SimpleJobFactory
+import org.quartz.spi.TriggerFiredBundle
 import setupInitialData
 import java.sql.Connection
 import java.util.*
@@ -69,12 +75,17 @@ fun main() {
     val invoiceService = InvoiceService(dal = dal)
     val customerService = CustomerService(dal = dal)
     val currentDateTimeService = CurrentDateTimeService()
+    val emailService = EmailService(currentDateTimeService = currentDateTimeService, properties = properties)
+    val notificationService = NotificationService(properties = properties, emailService = emailService)
 
     // This is _your_ billing service to be included where you see fit
-    scheduleBillingJob(properties)
     val billingService = BillingService(paymentProvider = paymentProvider,
             invoiceService = invoiceService,
             currentDateTimeService = currentDateTimeService)
+    scheduleBillingJob(properties = properties,
+            billingService = billingService,
+            invoiceService = invoiceService,
+            notificationService = notificationService)
 
     // Create REST web service
     AntaeusRest(
@@ -85,8 +96,13 @@ fun main() {
     ).run()
 }
 
-private fun scheduleBillingJob(properties: Properties) {
+private fun scheduleBillingJob(properties: Properties,
+                               billingService: BillingService,
+                               invoiceService: InvoiceService,
+                               notificationService: NotificationService) {
+    val billingJobFactory = BillingJobFactory(billingService, invoiceService, notificationService)
     val scheduler = StdSchedulerFactory().scheduler
+    scheduler.setJobFactory(billingJobFactory)
     val billingJob = JobBuilder.newJob(BillingJob::class.java)
             .withIdentity(JOB_NAME, JOB_GROUP_NAME)
             .build()
@@ -104,5 +120,20 @@ private fun loadProperties(): Properties {
     val properties = Properties()
     properties.load(propertiesFile)
     return properties
+}
+
+private class BillingJobFactory(
+        private val billingService: BillingService,
+        private val invoiceService: InvoiceService,
+        private val notificationService: NotificationService
+) : SimpleJobFactory() {
+
+    override fun newJob(bundle: TriggerFiredBundle?, Scheduler: Scheduler?): Job {
+        val billingJob = super.newJob(bundle, Scheduler) as BillingJob
+        billingJob.billingService = billingService
+        billingJob.invoiceService = invoiceService
+        billingJob.notificationService = notificationService
+        return billingJob
+    }
 }
 

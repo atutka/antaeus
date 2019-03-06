@@ -9,7 +9,7 @@ import io.mockk.verifyAll
 import io.pleo.antaeus.core.exceptions.CurrencyMismatchException
 import io.pleo.antaeus.core.exceptions.CustomerNotFoundException
 import io.pleo.antaeus.core.exceptions.InvoiceAlreadyPaidException
-import io.pleo.antaeus.core.exceptions.InvoiceCanceledException
+import io.pleo.antaeus.core.exceptions.InvoiceCancelledException
 import io.pleo.antaeus.core.exceptions.NetworkException
 import io.pleo.antaeus.core.external.PaymentProvider
 import io.pleo.antaeus.models.invoice.Invoice
@@ -220,7 +220,7 @@ class BillingServiceTest {
         every { invoice.id } returns invoiceId
         every { invoice.status } returns InvoiceStatus.CANCELED
 
-        assertThrows<InvoiceCanceledException> { billingService.chargeInvoice(invoice) }
+        assertThrows<InvoiceCancelledException> { billingService.chargeInvoice(invoice) }
 
         verifyAll {
             invoice.id

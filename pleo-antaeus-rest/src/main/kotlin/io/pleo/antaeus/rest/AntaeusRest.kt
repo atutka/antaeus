@@ -13,8 +13,9 @@ import io.javalin.apibuilder.ApiBuilder.post
 import io.javalin.apibuilder.ApiBuilder.put
 import io.pleo.antaeus.core.exceptions.CustomerNotFoundException
 import io.pleo.antaeus.core.exceptions.InvoiceAlreadyPaidException
-import io.pleo.antaeus.core.exceptions.InvoiceCanceledException
+import io.pleo.antaeus.core.exceptions.InvoiceCancelledException
 import io.pleo.antaeus.core.exceptions.InvoiceNotFoundException
+import io.pleo.antaeus.core.exceptions.PaidInvoiceCannotBeCancelledException
 import io.pleo.antaeus.core.services.BillingService
 import io.pleo.antaeus.core.services.CustomerService
 import io.pleo.antaeus.core.services.InvoiceService
@@ -53,8 +54,11 @@ class AntaeusRest (
             exception(InvoiceAlreadyPaidException::class.java) { _, ctx ->
                 ctx.result("invoice was already paid")
             }
-            exception(InvoiceCanceledException::class.java) { _, ctx ->
+            exception(InvoiceCancelledException::class.java) { _, ctx ->
                 ctx.result("invoice was canceled and cannot be paid")
+            }
+            exception(PaidInvoiceCannotBeCancelledException::class.java) { _, ctx ->
+                ctx.result("invoice was paid and cannot be cancelled")
             }
             exception(MissingKotlinParameterException::class.java) { _, ctx ->
                 ctx.result("request body is missing field/fields")
@@ -63,7 +67,8 @@ class AntaeusRest (
                 ctx.result("request body is not correct. check parentheses, commas, quotation marks etc. ")
             }
             // Unexpected exception: return HTTP 500
-            exception(Exception::class.java) { e, _ ->
+            exception(Exception::class.java) { e, ctx ->
+                ctx.result("There was an error in application")
                 logger.error(e) { "Internal server error" }
             }
         }
@@ -100,7 +105,7 @@ class AntaeusRest (
 
                        // URL: /rest/v1/invoices/charge/id/{:id}
                        post("charge/id/:id") {
-                           it.json(billingService.chargeInvoice(invoiceService.fetch(it.pathParam("id").toInt())))
+                           billingService.chargeInvoice(invoiceService.fetch(it.pathParam("id").toInt()))
                        }
 
                        // URL: /rest/v1/invoices/cancel/id/{:id}
